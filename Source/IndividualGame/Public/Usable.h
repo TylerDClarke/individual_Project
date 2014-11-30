@@ -16,7 +16,7 @@ class INDIVIDUALGAME_API AUsable : public AStaticMeshActor
 	UFUNCTION(BlueprintImplementableEvent)
 	bool onUsed(ACharacter* character);
 
-	UFUNCTION(BlueprintIMplementableEvent)
+	UFUNCTION(BlueprintImplementableEvent)
 	bool StartItem();
 
 	UFUNCTION(BlueprintImplementableEvent)

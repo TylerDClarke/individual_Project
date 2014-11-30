@@ -2,6 +2,9 @@
 #pragma once
 #include "GameFramework/Character.h"
 #include "Usable.h"
+#include "Weapons.h"
+#include "Pistol.h"
+#include "Shotgun.h"
 #include "IndividualGameCharacter.generated.h"
 
 
@@ -29,6 +32,10 @@ class AIndividualGameCharacter : public ACharacter
 	//collection volume
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Dossier)
 	TSubobjectPtr<class USphereComponent> CollectionSphere;		
+
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision)
+	TSubobjectPtr<class UBoxComponent> CollisionComponent;
 	
 
 protected:
@@ -65,6 +72,19 @@ protected:
 
 	virtual void Tick(float DeltaSeconds) override;
 
+	UFUNCTION()
+	void FireWeapon();
+
+	UPROPERTY(VisibleAnywhere, Category = Spawn)
+	TSubclassOf<class AWeapons> WeaponSpawn;
+
+	AWeapons *CurrentWeapon;
+
+	UFUNCTION()
+	virtual void BeginPlay() override;
+
+	UFUNCTION()
+	void OnCollision(AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult);
 
 
 protected:
@@ -85,8 +105,14 @@ protected:
 	// created from class usable and is currently in view of player
 	AUsable* FocusedUsableActor;
 
+	TArray<TSubclassOf<AWeapons>> Inventory;
+
+	void EquipPistol();
+	void EquipShotgun();
+
+
 public:
 	UFUNCTION(BlueprintCallable, WithValidation, Server, Reliable, Category = PlayerAbility)
-		virtual void use();
+	virtual void use();
 };
 

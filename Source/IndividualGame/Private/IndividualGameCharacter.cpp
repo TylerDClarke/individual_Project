@@ -3,6 +3,8 @@
 #include "IndividualGame.h"
 #include "IndividualGameCharacter.h"
 #include "DossierPickup.h"
+#include "Engine.h"
+#include "Engine/Blueprint.h"
 
 //////////////////////////////////////////////////////////////////////////
 // AIndividualGameCharacter
@@ -10,6 +12,18 @@
 AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
+	static ConstructorHelpers::FObjectFinder<UBlueprint> WeaponBlueprint(TEXT("Blueprint'/Game/Blueprints/Weapon/Weapon.Weapon'"));
+
+	WeaponSpawn = NULL;
+
+	if (WeaponBlueprint.Succeeded())
+	{
+		WeaponSpawn = (UClass*)WeaponBlueprint.Object->GeneratedClass;
+	}
+
+	CurrentWeapon = NULL;
+
+
 	// Set size for collision capsule
 	CapsuleComponent->InitCapsuleSize(42.f, 96.0f);
 
@@ -25,8 +39,12 @@ AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructIni
 	// Configure character movement
 	CharacterMovement->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	CharacterMovement->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
-	CharacterMovement->JumpZVelocity = 600.f;
+	CharacterMovement->JumpZVelocity = 400.f;
 	CharacterMovement->AirControl = 0.2f;
+
+	CollisionComponent = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("CollisionComponent"));
+	CollisionComponent->AttachTo(RootComponent);
+	CollisionComponent->OnComponentBeginOverlap.AddDynamic(this, &AIndividualGameCharacter::OnCollision);
 
 	// Create a camera boom (pulls in towards the player if there is a collision)
 	CameraBoom = PCIP.CreateDefaultSubobject<USpringArmComponent>(this, TEXT("CameraBoom"));
@@ -49,6 +67,8 @@ AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructIni
 
 	maxUseDistance = 150;
 	bHasNewFocus = true;
+
+	Inventory.SetNum(2, false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -65,6 +85,11 @@ void AIndividualGameCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	InputComponent->BindAction("Sprint", IE_Released, this, &AIndividualGameCharacter::endSprint);
 
 	InputComponent->BindAction("Use", IE_Pressed, this, &AIndividualGameCharacter::use);
+	
+	InputComponent->BindAction("Fire", IE_Pressed, this, &AIndividualGameCharacter::FireWeapon);
+
+	InputComponent->BindAction("Pistol", IE_Pressed, this, &AIndividualGameCharacter::EquipPistol);
+	InputComponent->BindAction("Shotgun", IE_Pressed, this, &AIndividualGameCharacter::EquipShotgun);
 
 	InputComponent->BindAxis("MoveForward", this, &AIndividualGameCharacter::MoveForward);
 	InputComponent->BindAxis("MoveRight", this, &AIndividualGameCharacter::MoveRight);
@@ -84,6 +109,19 @@ void AIndividualGameCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	InputComponent->BindAction("CollectionPickups", IE_Pressed, this, &AIndividualGameCharacter::collectDossier);
 }
 
+void AIndividualGameCharacter::BeginPlay()
+{
+	//FActorSpawnParameters SpawnParameters;
+	//SpawnParameters.Owner = this;
+	//SpawnParameters.Instigator = Instigator;
+	//AWeapons* Spawner = GetWorld()->SpawnActor<AWeapons>(WeaponSpawn, SpawnParameters);
+
+	//if (Spawner)
+	//{
+	//	Spawner->AttachRootComponentTo(Mesh, "Weapon_Socket", EAttachLocation::SnapToTarget);
+	//	CurrentWeapon = Spawner;
+	//}
+}
 
 void AIndividualGameCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
@@ -255,5 +293,93 @@ bool AIndividualGameCharacter::use_Validate()
 {
 	//No special validation performed
 	return true;
+}
+
+void AIndividualGameCharacter::FireWeapon()
+{
+	if (CurrentWeapon != NULL){
+		CurrentWeapon->Fire();
+	}
+}
+
+
+//Inventory system for carying different weapons
+void AIndividualGameCharacter::OnCollision(AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult)
+{
+	APistol* Pistol = Cast<APistol>(OtherActor);
+	if (Pistol)
+	{
+		Inventory[0] = Pistol->GetClass();
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "I Just Picked up a " + Pistol->WeaponConfig.Name);
+		Pistol->Destroy();
+	}
+	AShotgun* Shotgun = Cast<AShotgun>(OtherActor);
+	if (Shotgun){
+		Inventory[1] = Shotgun->GetClass();
+		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "I Just Picked up a " + Shotgun->WeaponConfig.Name);
+		Shotgun->Destroy();
+	}
+}
+
+void AIndividualGameCharacter::EquipPistol(){
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.Instigator = Instigator;
+	AWeapons* Spawner = GetWorld()->SpawnActor<AWeapons>(Inventory[0], SpawnParameters);
+
+	if (Spawner)
+	{
+		if (CurrentWeapon != NULL){
+			for (int32 i = 0; i < 2; i++){
+				if (Inventory[i] != NULL && Inventory[i]->GetDefaultObject<AWeapons>()->WeaponConfig.Name == CurrentWeapon->WeaponConfig.Name){
+					Inventory[i] = NULL;
+					Inventory[i] = CurrentWeapon->GetClass();
+					GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "I put" + CurrentWeapon->WeaponConfig.Name + "Away in slot" + FString::FromInt(i));
+				}
+			}
+			CurrentWeapon->Destroy();
+			Spawner->CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Spawner->AttachRootComponentTo(Mesh, "Weapon_Socket", EAttachLocation::SnapToTarget);
+			CurrentWeapon = Spawner;
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "My Current weapon is" + CurrentWeapon->WeaponConfig.Name);
+		}
+		else{
+			Spawner->CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Spawner->AttachRootComponentTo(Mesh, "Weapon_Socket", EAttachLocation::SnapToTarget);
+			CurrentWeapon = Spawner;
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "My Current weapon is" + CurrentWeapon->WeaponConfig.Name);
+		}
+	}
+}
+
+void AIndividualGameCharacter::EquipShotgun(){
+	FActorSpawnParameters SpawnParameters;
+	SpawnParameters.Owner = this;
+	SpawnParameters.Instigator = Instigator;
+	AWeapons* Spawner = GetWorld()->SpawnActor<AWeapons>(Inventory[1], SpawnParameters);
+
+	if (Spawner)
+	{
+		if (CurrentWeapon != NULL){
+			for (int32 i = 0; i < 2; i++){
+				if (Inventory[i] != NULL && Inventory[i]->GetDefaultObject<AWeapons>()->WeaponConfig.Name == CurrentWeapon->WeaponConfig.Name){
+					Inventory[i] = NULL;
+					Inventory[i] = CurrentWeapon->GetClass();
+					GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "I put" + CurrentWeapon->WeaponConfig.Name + "Away in slot" + FString::FromInt(i));
+				}
+			}
+			CurrentWeapon->Destroy();
+			Spawner->CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Spawner->AttachRootComponentTo(Mesh, "Weapon_Socket", EAttachLocation::SnapToTarget);
+			CurrentWeapon = Spawner;
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "My Current weapon is" + CurrentWeapon->WeaponConfig.Name);
+		}
+		else{
+			Spawner->CollisionComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
+			Spawner->AttachRootComponentTo(Mesh, "Weapon_Socket", EAttachLocation::SnapToTarget);
+			CurrentWeapon = Spawner;
+			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "My Current weapon is" + CurrentWeapon->WeaponConfig.Name);
+		}
+	}
 }
 
