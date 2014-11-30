@@ -1,7 +1,9 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "GameFramework/Character.h"
+#include "Usable.h"
 #include "IndividualGameCharacter.generated.h"
+
 
 UCLASS(config=Game)
 class AIndividualGameCharacter : public ACharacter
@@ -61,11 +63,30 @@ protected:
 	void startSprint();
 	void endSprint();
 
-	//virtual void () override;
+	virtual void Tick(float DeltaSeconds) override;
+
+
 
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	// End of APawn interface
+
+	//call the usable class 
+	class AUsable* getUsableView();
+
+	//Checks how far away the player is from the collectible so you cannot pickup anywhere on the map
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
+	float maxUseDistance;
+
+	//This only becomes true when targeting on new usuable actor.
+	bool bHasNewFocus;
+
+	// created from class usable and is currently in view of player
+	AUsable* FocusedUsableActor;
+
+public:
+	UFUNCTION(BlueprintCallable, WithValidation, Server, Reliable, Category = PlayerAbility)
+		virtual void use();
 };
 

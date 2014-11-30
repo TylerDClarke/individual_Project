@@ -46,6 +46,9 @@ AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructIni
 	CollectionSphere = PCIP.CreateDefaultSubobject<USphereComponent>(this, TEXT("CollectionSphere"));
 	CollectionSphere->AttachTo(RootComponent);
 	CollectionSphere->SetSphereRadius(200.0f);
+
+	maxUseDistance = 150;
+	bHasNewFocus = true;
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -60,6 +63,8 @@ void AIndividualGameCharacter::SetupPlayerInputComponent(class UInputComponent* 
 
 	InputComponent->BindAction("Sprint", IE_Pressed, this, &AIndividualGameCharacter::startSprint);
 	InputComponent->BindAction("Sprint", IE_Released, this, &AIndividualGameCharacter::endSprint);
+
+	InputComponent->BindAction("Use", IE_Pressed, this, &AIndividualGameCharacter::use);
 
 	InputComponent->BindAxis("MoveForward", this, &AIndividualGameCharacter::MoveForward);
 	InputComponent->BindAxis("MoveRight", this, &AIndividualGameCharacter::MoveRight);
@@ -170,3 +175,85 @@ void AIndividualGameCharacter::collectDossier()
 		}
 	}
 }
+
+
+//Performs a ray trace to find closest looked at usbale actor
+AUsable* AIndividualGameCharacter::getUsableView()
+{
+	FVector cameraLocation;
+	FRotator cameraRotation;
+
+
+
+	if (Controller == NULL)
+		return NULL;
+
+	//Get the location of the player and then cast a trace from where they are pointing by the distance cast in the constructor which is 150
+	Controller->GetPlayerViewPoint(cameraLocation, cameraRotation);
+	const FVector start_trace = cameraLocation;
+	const FVector direction = cameraRotation.Vector();
+	const FVector end_Trace = start_trace + (direction * maxUseDistance);
+
+	//setting the parameters of the trace so not everything in the world is outlined
+	FCollisionQueryParams TraceParams(FName(TEXT("")), true, this);
+	TraceParams.bTraceAsyncScene = true;
+	TraceParams.bReturnPhysicalMaterial = false;
+	TraceParams.bTraceComplex = true;
+
+	FHitResult Hit(ForceInit);
+	GetWorld()->LineTraceSingle(Hit, start_trace, end_Trace, COLLISION_PROJECTILE, TraceParams);
+
+	return Cast<AUsable>(Hit.GetActor());
+}
+
+
+//update actor currently being looked at by player
+void AIndividualGameCharacter::Tick(float DeltaSeconds)
+	{
+	Super::Tick(DeltaSeconds);
+
+	if (Controller && Controller->IsLocalController())
+	{
+		AUsable* usable = getUsableView();
+
+		//EndFocus
+		if(FocusedUsableActor != usable)
+		{
+			if(FocusedUsableActor)
+			{
+				FocusedUsableActor->EndItem();
+			}
+			bHasNewFocus = true;
+		}	
+
+		//Assign a new focus
+		FocusedUsableActor = usable;
+
+		//Start Focus
+		if (usable)
+		{
+			if (bHasNewFocus)
+			{
+				usable->StartItem();
+				bHasNewFocus = false;
+			}
+		}
+	}
+}
+
+/*Runs on server. Onused is called if views actor is implemented*/
+void AIndividualGameCharacter::use_Implementation()
+{
+	AUsable* usable = getUsableView();
+	if (usable)
+	{
+		usable->onUsed(this);
+	}
+}
+
+bool AIndividualGameCharacter::use_Validate()
+{
+	//No special validation performed
+	return true;
+}
+
