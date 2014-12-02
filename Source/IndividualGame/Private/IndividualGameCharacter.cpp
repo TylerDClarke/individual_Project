@@ -2,7 +2,6 @@
 
 #include "IndividualGame.h"
 #include "IndividualGameCharacter.h"
-#include "DossierPickup.h"
 #include "Engine.h"
 #include "Engine/Blueprint.h"
 
@@ -12,17 +11,9 @@
 AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	static ConstructorHelpers::FObjectFinder<UBlueprint> WeaponBlueprint(TEXT("Blueprint'/Game/Blueprints/Weapon/Weapon.Weapon'"));
+	Inventory.SetNum(2, false);
 
-	WeaponSpawn = NULL;
-
-	if (WeaponBlueprint.Succeeded())
-	{
-		WeaponSpawn = (UClass*)WeaponBlueprint.Object->GeneratedClass;
-	}
-
-	CurrentWeapon = NULL;
-
+	//CurrentWeapon = NULL;
 
 	// Set size for collision capsule
 	CapsuleComponent->InitCapsuleSize(42.f, 96.0f);
@@ -39,7 +30,7 @@ AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructIni
 	// Configure character movement
 	CharacterMovement->bOrientRotationToMovement = true; // Character moves in the direction of input...	
 	CharacterMovement->RotationRate = FRotator(0.0f, 540.0f, 0.0f); // ...at this rotation rate
-	CharacterMovement->JumpZVelocity = 400.f;
+	CharacterMovement->JumpZVelocity = 600.f;
 	CharacterMovement->AirControl = 0.2f;
 
 	CollisionComponent = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("CollisionComponent"));
@@ -59,16 +50,6 @@ AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructIni
 
 	// Note: The skeletal mesh and anim blueprint references on the Mesh component (inherited from Character) 
 	// are set in the derived blueprint asset named MyCharacter (to avoid direct content references in C++)
-
-	//Create the dossierCollectVolume
-	CollectionSphere = PCIP.CreateDefaultSubobject<USphereComponent>(this, TEXT("CollectionSphere"));
-	CollectionSphere->AttachTo(RootComponent);
-	CollectionSphere->SetSphereRadius(200.0f);
-
-	maxUseDistance = 150;
-	bHasNewFocus = true;
-
-	Inventory.SetNum(2, false);
 }
 
 //////////////////////////////////////////////////////////////////////////
@@ -81,18 +62,13 @@ void AIndividualGameCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	InputComponent->BindAction("Jump", IE_Pressed, this, &ACharacter::Jump);
 	InputComponent->BindAction("Jump", IE_Released, this, &ACharacter::StopJumping);
 
-	InputComponent->BindAction("Sprint", IE_Pressed, this, &AIndividualGameCharacter::startSprint);
-	InputComponent->BindAction("Sprint", IE_Released, this, &AIndividualGameCharacter::endSprint);
+	InputComponent->BindAxis("MoveForward", this, &AIndividualGameCharacter::MoveForward);
+	InputComponent->BindAxis("MoveRight", this, &AIndividualGameCharacter::MoveRight);
 
-	InputComponent->BindAction("Use", IE_Pressed, this, &AIndividualGameCharacter::use);
-	
 	InputComponent->BindAction("Fire", IE_Pressed, this, &AIndividualGameCharacter::FireWeapon);
 
 	InputComponent->BindAction("Pistol", IE_Pressed, this, &AIndividualGameCharacter::EquipPistol);
 	InputComponent->BindAction("Shotgun", IE_Pressed, this, &AIndividualGameCharacter::EquipShotgun);
-
-	InputComponent->BindAxis("MoveForward", this, &AIndividualGameCharacter::MoveForward);
-	InputComponent->BindAxis("MoveRight", this, &AIndividualGameCharacter::MoveRight);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -105,8 +81,6 @@ void AIndividualGameCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	// handle touch devices
 	InputComponent->BindTouch(IE_Pressed, this, &AIndividualGameCharacter::TouchStarted);
 	InputComponent->BindTouch(IE_Released, this, &AIndividualGameCharacter::TouchStopped);
-
-	InputComponent->BindAction("CollectionPickups", IE_Pressed, this, &AIndividualGameCharacter::collectDossier);
 }
 
 void AIndividualGameCharacter::BeginPlay()
@@ -122,6 +96,7 @@ void AIndividualGameCharacter::BeginPlay()
 	//	CurrentWeapon = Spawner;
 	//}
 }
+
 
 void AIndividualGameCharacter::TouchStarted(ETouchIndex::Type FingerIndex, FVector Location)
 {
@@ -181,119 +156,6 @@ void AIndividualGameCharacter::MoveRight(float Value)
 	}
 }
 
-void AIndividualGameCharacter::startSprint()
-{
-	CharacterMovement->MaxWalkSpeed = 900;
-}
-
-void AIndividualGameCharacter::endSprint()
-{
-	CharacterMovement->MaxWalkSpeed = 600;
-}
-
-void AIndividualGameCharacter::collectDossier()
-{
-	//get all overlapping Actors and store them in a collectedActor array
-	TArray<AActor*> collectedActor;
-	CollectionSphere->GetOverlappingActors(collectedActor);
-	
-	//for each actor collected
-	for (int32 iCollected = 0; iCollected < collectedActor.Num(); ++iCollected)
-	{
-		//Cast the collected to ADossierPickUp
-		ADossierPickup* const Dossier = Cast<ADossierPickup>(collectedActor[iCollected]);
-
-		//if cast is successful, and battery is valid and active
-		if (Dossier && !Dossier->IsPendingKill() && Dossier->bIsActive)
-		{
-			//call the Dossier pick up function
-			Dossier->onPickedUp();
-			//set isActive to false
-			Dossier->bIsActive = false;
-		}
-	}
-}
-
-
-//Performs a ray trace to find closest looked at usbale actor
-AUsable* AIndividualGameCharacter::getUsableView()
-{
-	FVector cameraLocation;
-	FRotator cameraRotation;
-
-
-
-	if (Controller == NULL)
-		return NULL;
-
-	//Get the location of the player and then cast a trace from where they are pointing by the distance cast in the constructor which is 150
-	Controller->GetPlayerViewPoint(cameraLocation, cameraRotation);
-	const FVector start_trace = cameraLocation;
-	const FVector direction = cameraRotation.Vector();
-	const FVector end_Trace = start_trace + (direction * maxUseDistance);
-
-	//setting the parameters of the trace so not everything in the world is outlined
-	FCollisionQueryParams TraceParams(FName(TEXT("")), true, this);
-	TraceParams.bTraceAsyncScene = true;
-	TraceParams.bReturnPhysicalMaterial = false;
-	TraceParams.bTraceComplex = true;
-
-	FHitResult Hit(ForceInit);
-	GetWorld()->LineTraceSingle(Hit, start_trace, end_Trace, COLLISION_PROJECTILE, TraceParams);
-
-	return Cast<AUsable>(Hit.GetActor());
-}
-
-
-//update actor currently being looked at by player
-void AIndividualGameCharacter::Tick(float DeltaSeconds)
-	{
-	Super::Tick(DeltaSeconds);
-
-	if (Controller && Controller->IsLocalController())
-	{
-		AUsable* usable = getUsableView();
-
-		//EndFocus
-		if(FocusedUsableActor != usable)
-		{
-			if(FocusedUsableActor)
-			{
-				FocusedUsableActor->EndItem();
-			}
-			bHasNewFocus = true;
-		}	
-
-		//Assign a new focus
-		FocusedUsableActor = usable;
-
-		//Start Focus
-		if (usable)
-		{
-			if (bHasNewFocus)
-			{
-				usable->StartItem();
-				bHasNewFocus = false;
-			}
-		}
-	}
-}
-
-/*Runs on server. Onused is called if views actor is implemented*/
-void AIndividualGameCharacter::use_Implementation()
-{
-	AUsable* usable = getUsableView();
-	if (usable)
-	{
-		usable->onUsed(this);
-	}
-}
-
-bool AIndividualGameCharacter::use_Validate()
-{
-	//No special validation performed
-	return true;
-}
 
 void AIndividualGameCharacter::FireWeapon()
 {
@@ -302,13 +164,10 @@ void AIndividualGameCharacter::FireWeapon()
 	}
 }
 
-
-//Inventory system for carying different weapons
 void AIndividualGameCharacter::OnCollision(AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult)
 {
 	APistol* Pistol = Cast<APistol>(OtherActor);
-	if (Pistol)
-	{
+	if (Pistol){
 		Inventory[0] = Pistol->GetClass();
 		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "I Just Picked up a " + Pistol->WeaponConfig.Name);
 		Pistol->Destroy();
@@ -382,4 +241,3 @@ void AIndividualGameCharacter::EquipShotgun(){
 		}
 	}
 }
-

@@ -5,6 +5,4 @@
 
 #include "EngineMinimal.h"
 
-#define COLLISION_PROJECTILE ECC_GameTraceChannel1
-
 #endif

@@ -1,12 +1,10 @@
 // Copyright 1998-2014 Epic Games, Inc. All Rights Reserved.
 #pragma once
 #include "GameFramework/Character.h"
-#include "Usable.h"
 #include "Weapons.h"
 #include "Pistol.h"
 #include "Shotgun.h"
 #include "IndividualGameCharacter.generated.h"
-
 
 UCLASS(config=Game)
 class AIndividualGameCharacter : public ACharacter
@@ -29,19 +27,13 @@ class AIndividualGameCharacter : public ACharacter
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category=Camera)
 	float BaseLookUpRate;
 
-	//collection volume
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Dossier)
-	TSubobjectPtr<class USphereComponent> CollectionSphere;		
-
-	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision)
 	TSubobjectPtr<class UBoxComponent> CollisionComponent;
-	
+
+	UPROPERTY(VisibleAnywhere, Category = Spawn)
+	TSubclassOf<class AWeapons> WeaponSpawn;
 
 protected:
-	//Called when we press a key to collect any Dossier
-	UFUNCTION(BlueprintCallable, Category = Dossier)
-	void collectDossier();
 
 	/** Called for forwards/backward input */
 	void MoveForward(float Value);
@@ -67,52 +59,25 @@ protected:
 	/** Handler for when a touch input stops. */
 	void TouchStopped(ETouchIndex::Type FingerIndex, FVector Location);
 
-	void startSprint();
-	void endSprint();
-
-	virtual void Tick(float DeltaSeconds) override;
-
 	UFUNCTION()
 	void FireWeapon();
 
-	UPROPERTY(VisibleAnywhere, Category = Spawn)
-	TSubclassOf<class AWeapons> WeaponSpawn;
+	TArray<TSubclassOf<AWeapons>> Inventory;
 
 	AWeapons *CurrentWeapon;
 
 	UFUNCTION()
 	virtual void BeginPlay() override;
 
+	void EquipPistol();
+	void EquipShotgun();
+
 	UFUNCTION()
 	void OnCollision(AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult);
-
 
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
 	// End of APawn interface
-
-	//call the usable class 
-	class AUsable* getUsableView();
-
-	//Checks how far away the player is from the collectible so you cannot pickup anywhere on the map
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = Gameplay)
-	float maxUseDistance;
-
-	//This only becomes true when targeting on new usuable actor.
-	bool bHasNewFocus;
-
-	// created from class usable and is currently in view of player
-	AUsable* FocusedUsableActor;
-
-	TArray<TSubclassOf<AWeapons>> Inventory;
-
-	void EquipPistol();
-	void EquipShotgun();
-
-
-public:
-	UFUNCTION(BlueprintCallable, WithValidation, Server, Reliable, Category = PlayerAbility)
-	virtual void use();
 };
 

@@ -8,7 +8,7 @@
 #define TRACE_WEAPON ECC_GameTraceChannel1
 
 AWeapons::AWeapons(const class FPostConstructInitializeProperties& PCIP)
-	: Super(PCIP)
+: Super(PCIP)
 {
 	CollisionComponent = PCIP.CreateDefaultSubobject<UBoxComponent>(this, TEXT("CollsionComponent"));
 	RootComponent = CollisionComponent;
@@ -75,9 +75,13 @@ void AWeapons::ProcessInstantHit(const FHitResult &Impact, const FVector &Origin
 	const FVector EndTrace = Origin + shootDirection * WeaponConfig.shotRange;
 	//if we hit an actor we want to end the trace otherwise we want to continue along the end trace till the end
 	const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
-
 	DrawDebugLine(this->GetWorld(), Origin, Impact.TraceEnd, FColor::Black, true, 1000, 10.0f);
 
-
+	AEnemy* Enemy = Cast<AEnemy>(Impact.GetActor());
+	if (Enemy)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, "You Hit A Target");
+		Enemy->Destroy();
+	}
 }
 

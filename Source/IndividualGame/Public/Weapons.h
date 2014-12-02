@@ -7,8 +7,10 @@
 #include "Weapons.generated.h"
 
 /**
- * 
- */
+* Based Off youtube tutorial Weapon Essentials 1 Part 1: https://www.youtube.com/watch?v=ubVpYz_x_Ig
+							 Weapon Essentials 1 Part 2: https://www.youtube.com/watch?v=yhXMXNRtMqI
+							 Weapon Essentials 2: https://www.youtube.com/watch?v=qwYEu2nvXhA
+*/
 
 UENUM(BlueprintType)
 namespace EWeaponProjectile
@@ -48,11 +50,6 @@ struct FWeaponData
 
 	UPROPERTY(EditDefaultsOnly, Category = Config)
 	FString Name;
-
-	UPROPERTY(EditDefaultsOnly, Category = Projectile)
-	TSubclassOf<class ADistractObject> DistractObject;
-
-	
 };
 
 
@@ -65,23 +62,23 @@ class INDIVIDUALGAME_API AWeapons : public AActor
 	void Fire();
 
 	UFUNCTION()
-	void InstantFire();
-	
+		void InstantFire();
+
 	UPROPERTY(EditDefaultsOnly, Category = Config)
-	FWeaponData WeaponConfig;
+		FWeaponData WeaponConfig;
 
 	UPROPERTY(EditDefaultsOnly, BLueprintReadWrite, Category = Config)
-	TEnumAsByte<EWeaponProjectile::ProjectileType> ProjectileType;
+		TEnumAsByte<EWeaponProjectile::ProjectileType> ProjectileType;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision)
-	TSubobjectPtr<UBoxComponent> CollisionComponent;
+		TSubobjectPtr<UBoxComponent> CollisionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Config)
-	TSubobjectPtr<USkeletalMeshComponent> WeaponMesh;
+		TSubobjectPtr<USkeletalMeshComponent> WeaponMesh;
 
 protected:
 	FHitResult WeaponTrace(const FVector & traceFrom, const FVector &TraceTo) const;
-	
+
 	void ProcessInstantHit(const FHitResult &Impact, const FVector &Origin, const FVector &shootDirection, int32 RandomSeed, float ReticleSpread);
 
 };
