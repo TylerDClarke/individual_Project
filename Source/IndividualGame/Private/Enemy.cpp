@@ -7,7 +7,8 @@
 AEnemy::AEnemy(const class FPostConstructInitializeProperties& PCIP)
 	: Super(PCIP)
 {
-	EnemyMesh = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, "enemy");
+	EnemyMesh = PCIP.CreateDefaultSubobject<UStaticMeshComponent>(this, "enemy"); 
+	
 }
 
 

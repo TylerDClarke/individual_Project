@@ -21,13 +21,14 @@ void AWeapons::Fire()
 {
 	if (ProjectileType == EWeaponProjectile::EBullet)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, TEXT("Bullet"));
+		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, TEXT("Bullet"));
 		InstantFire();
 	}
 	if (ProjectileType == EWeaponProjectile::ESpread)
 	{
-		GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, TEXT("Spread"));
+		//GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, TEXT("Spread"));
 		//this is going to have a random spread evrytime its called which is why it is placed in a for loop
+		
 		for (int32 i = 0; i <= WeaponConfig.bulletSpread; i++)
 		{
 			InstantFire();
@@ -78,10 +79,19 @@ void AWeapons::ProcessInstantHit(const FHitResult &Impact, const FVector &Origin
 	DrawDebugLine(this->GetWorld(), Origin, Impact.TraceEnd, FColor::Black, true, 1000, 10.0f);
 
 	AEnemy* Enemy = Cast<AEnemy>(Impact.GetActor());
+	
 	if (Enemy)
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, "You Hit A Target");
 		Enemy->Destroy();
+	}
+
+	AEnemy1* Enemy1 = Cast<AEnemy1>(Impact.GetActor());
+
+	if (Enemy1)
+	{
+		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, "You Hit A Target");
+		Enemy1->Destroy();
 	}
 }
 

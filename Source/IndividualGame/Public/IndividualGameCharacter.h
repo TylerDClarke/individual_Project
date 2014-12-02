@@ -4,6 +4,7 @@
 #include "Weapons.h"
 #include "Pistol.h"
 #include "Shotgun.h"
+#include "DossierPickup.h"
 #include "IndividualGameCharacter.generated.h"
 
 UCLASS(config=Game)
@@ -32,6 +33,10 @@ class AIndividualGameCharacter : public ACharacter
 
 	UPROPERTY(VisibleAnywhere, Category = Spawn)
 	TSubclassOf<class AWeapons> WeaponSpawn;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collect)
+	TSubobjectPtr<class USphereComponent> CollisionSphere;
+
 
 protected:
 
@@ -74,6 +79,9 @@ protected:
 
 	UFUNCTION()
 	void OnCollision(AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult &SweepResult);
+
+	UFUNCTION(BlueprintCallable, Category = Collect)
+	void CollectDossier();
 
 protected:
 	// APawn interface

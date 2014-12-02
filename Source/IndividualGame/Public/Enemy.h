@@ -15,5 +15,7 @@ class INDIVIDUALGAME_API AEnemy : public AActor
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Mesh)
 	TSubobjectPtr<UStaticMeshComponent> EnemyMesh;
+
+
 	
 };

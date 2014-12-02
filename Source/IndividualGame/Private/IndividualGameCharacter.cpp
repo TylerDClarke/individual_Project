@@ -18,6 +18,13 @@ AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructIni
 	// Set size for collision capsule
 	CapsuleComponent->InitCapsuleSize(42.f, 96.0f);
 
+	//set the c
+	CollisionSphere = PCIP.CreateDefaultSubobject<USphereComponent>(this, TEXT("CollectionSphere"));
+	CollisionSphere->AttachTo(RootComponent);
+	CollisionSphere->SetSphereRadius(200.0f);
+
+
+
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
 	BaseLookUpRate = 45.f;
@@ -66,6 +73,8 @@ void AIndividualGameCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	InputComponent->BindAxis("MoveRight", this, &AIndividualGameCharacter::MoveRight);
 
 	InputComponent->BindAction("Fire", IE_Pressed, this, &AIndividualGameCharacter::FireWeapon);
+	
+	InputComponent->BindAction("CollectDossier", IE_Pressed, this, &AIndividualGameCharacter::CollectDossier);
 
 	InputComponent->BindAction("Pistol", IE_Pressed, this, &AIndividualGameCharacter::EquipPistol);
 	InputComponent->BindAction("Shotgun", IE_Pressed, this, &AIndividualGameCharacter::EquipShotgun);
@@ -238,6 +247,29 @@ void AIndividualGameCharacter::EquipShotgun(){
 			Spawner->AttachRootComponentTo(Mesh, "Weapon_Socket", EAttachLocation::SnapToTarget);
 			CurrentWeapon = Spawner;
 			GEngine->AddOnScreenDebugMessage(-1, 2.0f, FColor::Black, "My Current weapon is" + CurrentWeapon->WeaponConfig.Name);
+		}
+	}
+}
+
+void AIndividualGameCharacter::CollectDossier()
+{
+	//get all overlapping Actors and store them in a collectedActor array
+	TArray<AActor*> collectedActor;
+	CollisionSphere->GetOverlappingActors(collectedActor);
+
+	//for each actor collected
+	for (int32 iCollected = 0; iCollected < collectedActor.Num(); ++iCollected)
+	{
+		//Cast the collected to ADossierPickUp
+		ADossierPickup* const Dossier = Cast<ADossierPickup>(collectedActor[iCollected]);
+
+		//if cast is successful, and battery is valid and active
+		if (Dossier && !Dossier->IsPendingKill() && Dossier->bIsActive)
+		{
+			//call the Dossier pick up function
+			Dossier->onPickedUp();
+			//set isActive to false
+			Dossier->bIsActive = false;
 		}
 	}
 }

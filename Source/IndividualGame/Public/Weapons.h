@@ -4,6 +4,7 @@
 
 #include "GameFramework/Actor.h"
 #include "Enemy.h"
+#include "Enemy1.h"
 #include "Weapons.generated.h"
 
 /**
@@ -62,19 +63,19 @@ class INDIVIDUALGAME_API AWeapons : public AActor
 	void Fire();
 
 	UFUNCTION()
-		void InstantFire();
+	void InstantFire();
 
 	UPROPERTY(EditDefaultsOnly, Category = Config)
-		FWeaponData WeaponConfig;
+	FWeaponData WeaponConfig;
 
 	UPROPERTY(EditDefaultsOnly, BLueprintReadWrite, Category = Config)
-		TEnumAsByte<EWeaponProjectile::ProjectileType> ProjectileType;
+	TEnumAsByte<EWeaponProjectile::ProjectileType> ProjectileType;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Collision)
-		TSubobjectPtr<UBoxComponent> CollisionComponent;
+	TSubobjectPtr<UBoxComponent> CollisionComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = Config)
-		TSubobjectPtr<USkeletalMeshComponent> WeaponMesh;
+	TSubobjectPtr<USkeletalMeshComponent> WeaponMesh;
 
 protected:
 	FHitResult WeaponTrace(const FVector & traceFrom, const FVector &TraceTo) const;
