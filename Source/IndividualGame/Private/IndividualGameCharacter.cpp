@@ -12,18 +12,14 @@ AIndividualGameCharacter::AIndividualGameCharacter(const class FPostConstructIni
 	: Super(PCIP)
 {
 	Inventory.SetNum(2, false);
-
-	//CurrentWeapon = NULL;
+	SprintEnergy = 100;
 
 	// Set size for collision capsule
 	CapsuleComponent->InitCapsuleSize(42.f, 96.0f);
 
-	//set the c
 	CollisionSphere = PCIP.CreateDefaultSubobject<USphereComponent>(this, TEXT("CollectionSphere"));
 	CollisionSphere->AttachTo(RootComponent);
 	CollisionSphere->SetSphereRadius(200.0f);
-
-
 
 	// set our turn rates for input
 	BaseTurnRate = 45.f;
@@ -72,12 +68,14 @@ void AIndividualGameCharacter::SetupPlayerInputComponent(class UInputComponent* 
 	InputComponent->BindAxis("MoveForward", this, &AIndividualGameCharacter::MoveForward);
 	InputComponent->BindAxis("MoveRight", this, &AIndividualGameCharacter::MoveRight);
 
-	InputComponent->BindAction("Fire", IE_Pressed, this, &AIndividualGameCharacter::FireWeapon);
 	
+	//Functions that i have binded to key presses
+	InputComponent->BindAction("Fire", IE_Pressed, this, &AIndividualGameCharacter::FireWeapon);
 	InputComponent->BindAction("CollectDossier", IE_Pressed, this, &AIndividualGameCharacter::CollectDossier);
-
 	InputComponent->BindAction("Pistol", IE_Pressed, this, &AIndividualGameCharacter::EquipPistol);
 	InputComponent->BindAction("Shotgun", IE_Pressed, this, &AIndividualGameCharacter::EquipShotgun);
+	InputComponent->BindAction("StartSprint", IE_Pressed, this, &AIndividualGameCharacter::StartSprint);
+	InputComponent->BindAction("EndSprint", IE_Released, this, &AIndividualGameCharacter::EndSprint);
 
 	// We have 2 versions of the rotation bindings to handle different kinds of devices differently
 	// "turn" handles devices that provide an absolute delta, such as a mouse.
@@ -272,4 +270,25 @@ void AIndividualGameCharacter::CollectDossier()
 			Dossier->bIsActive = false;
 		}
 	}
+}
+
+void AIndividualGameCharacter::StartSprint()
+{
+	CharacterMovement->MaxWalkSpeed = 1500;
+}
+
+void AIndividualGameCharacter::EndSprint()
+{
+	CharacterMovement->MaxWalkSpeed = 900;
+}
+
+void AIndividualGameCharacter::sprintDrain()
+{
+	//if (startSprint){
+	//	SprintEnergy--;
+	//}else{
+	//	if (endSprint){
+	//		SprintEnergy++;
+	//	}
+	//}
 }

@@ -68,6 +68,7 @@ FHitResult AWeapons::WeaponTrace(const FVector & traceFrom, const FVector &Trace
 
 	GetWorld()->LineTraceSingle(Hit, traceFrom, TraceTo, TRACE_WEAPON, TraceParams);
 
+
 	return Hit;
 }
 
@@ -76,7 +77,7 @@ void AWeapons::ProcessInstantHit(const FHitResult &Impact, const FVector &Origin
 	const FVector EndTrace = Origin + shootDirection * WeaponConfig.shotRange;
 	//if we hit an actor we want to end the trace otherwise we want to continue along the end trace till the end
 	const FVector EndPoint = Impact.GetActor() ? Impact.ImpactPoint : EndTrace;
-	DrawDebugLine(this->GetWorld(), Origin, Impact.TraceEnd, FColor::Black, true, 1000, 10.0f);
+	//DrawDebugLine(this->GetWorld(), Origin, Impact.TraceEnd, FColor::Black, true, 1000, 10.0f);
 
 	AEnemy* Enemy = Cast<AEnemy>(Impact.GetActor());
 	
@@ -84,14 +85,6 @@ void AWeapons::ProcessInstantHit(const FHitResult &Impact, const FVector &Origin
 	{
 		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, "You Hit A Target");
 		Enemy->Destroy();
-	}
-
-	AEnemy1* Enemy1 = Cast<AEnemy1>(Impact.GetActor());
-
-	if (Enemy1)
-	{
-		GEngine->AddOnScreenDebugMessage(-1, 3.0f, FColor::Red, "You Hit A Target");
-		Enemy1->Destroy();
 	}
 }
 

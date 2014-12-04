@@ -83,6 +83,14 @@ protected:
 	UFUNCTION(BlueprintCallable, Category = Collect)
 	void CollectDossier();
 
+	void StartSprint();
+	void EndSprint();
+
+	UFUNCTION(BlueprintCallable, Category = Sprint)
+	void sprintDrain();
+
+	float SprintEnergy; 
+
 protected:
 	// APawn interface
 	virtual void SetupPlayerInputComponent(class UInputComponent* InputComponent) override;
